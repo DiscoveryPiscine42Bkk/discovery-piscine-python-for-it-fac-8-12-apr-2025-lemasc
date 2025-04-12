@@ -36,6 +36,26 @@ def print_with_color(values, color, end="\n"):
 # end: utils
 # begin: checkmate
 
+def check_and_parse_board(board: str):
+  rows = board.upper().split("\n")
+  row_n = len(rows)
+
+  if row_n < 2:
+    print_with_color("[error]", color=ANSI.RED, end=" ")
+    print(f"Board size must be at least 2x2, you provided only {row_n} row.")
+    return None
+
+  for i in range(row_n):
+    col_n = len(rows[i])
+    if row_n != col_n:
+        print_with_color("[error]", color=ANSI.RED, end=" ")
+        print(f"Row {i + 1} has {col_n} column{"s" if col_n > 1 else ""}, expected board square size ({row_n}x{row_n})")
+        return None
+    for j in range(col_n):
+       if rows[i][j] not in ".KPBRQ":
+          rows[i][j] = "."
+  return rows
+
 def is_area_pawn(row: int, column: int, center_i: int, center_j: int):
     return (
         center_i - row == 1 and
@@ -47,7 +67,6 @@ def is_area_bishop(row: int, column: int, center_i: int, center_j: int):
 
 def is_area_rook(row: int, column: int, center_i: int, center_j: int):
     return center_i == row or center_j == column
-
 
 def is_area_queen(row: int, column: int, center_i: int, center_j: int):
     a = abs(center_i - row) == abs(center_j - column)
@@ -70,17 +89,19 @@ check_fn_by_cell = {
 
 def checkmate(board):
     success = False
-    b = board.split("\n")
-    for i in range(len(b)):
-        for j in range(len(b[i])):
-            cell = b[i][j]
-            if cell == "K":
-                print_with_color(cell, color=ANSI.HIGHLIGHTED_RED, end=" ")
-                continue
-            if cell in check_fn_by_cell and is_king_in_range(b, (i, j), check_fn_by_cell[cell]):
-                print_with_color(cell, color=ANSI.HIGHLIGHTED_CYAN, end=" ")
-                success = True
-                continue
-            print_with_color(cell, end=" ", color=ANSI.WHITE if cell == "K" else ANSI.BLACK_LIGHT)
-        print()
-    print("Success! King In Check!" if success else "King not in check.")
+    b = check_and_parse_board(board)
+    if b:
+        for i in range(len(b)):
+            for j in range(len(b[i])):
+                cell = b[i][j]
+                if cell == "K":
+                    print_with_color(cell, color=ANSI.HIGHLIGHTED_RED, end=" ")
+                    continue
+                if cell in check_fn_by_cell and is_king_in_range(b, (i, j), check_fn_by_cell[cell]):
+                    print_with_color(cell, color=ANSI.HIGHLIGHTED_CYAN, end=" ")
+                    success = True
+                    continue
+                print_with_color(cell, end=" ", color=ANSI.WHITE if cell == "K" else ANSI.BLACK_LIGHT)
+            print()
+    print("Success" if success else "Fail")
+    return success
