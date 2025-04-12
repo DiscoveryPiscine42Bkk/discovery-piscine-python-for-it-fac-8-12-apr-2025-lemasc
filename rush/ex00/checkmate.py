@@ -57,27 +57,38 @@ def check_and_parse_board(board: str):
   return rows
 
 def is_area_pawn(row: int, column: int, center_i: int, center_j: int):
-    return (
-        center_i - row == 1 and
-        abs(center_j - column) == 1
-    )
+    if (center_i - row == 1 and abs(center_j - column) == 1):
+        return 1
 
 def is_area_bishop(row: int, column: int, center_i: int, center_j: int):
-    return abs(center_i - row) == abs(center_j - column)
+    a = abs(center_i - row)
+    b = abs(center_j - column)
+    if (a == b):
+       return a
 
 def is_area_rook(row: int, column: int, center_i: int, center_j: int):
-    return center_i == row or center_j == column
+    if (center_i == row or center_j == column):
+       return max(abs(center_i - row), abs(center_j - column))
 
 def is_area_queen(row: int, column: int, center_i: int, center_j: int):
     a = abs(center_i - row) == abs(center_j - column)
     b = center_i == row or center_j == column
     return (a or b)
 
+def get_notation(row: int, column: int):
+    """
+    Convert a row and column to chess notation
+    """
+    return f"{chr(column + 65)}{row + 1}"
+
+
 def is_king_in_range(board, initial_point, check_fn):
     for i in range(len(board)):
         for j in range(len(board[i])):
-            if board[i][j] == "K" and check_fn(i, j, initial_point[0], initial_point[1]):
-                return True
+            if board[i][j] == "K":
+                delta = check_fn(i, j, initial_point[0], initial_point[1])
+                if delta:
+                   return delta
     return False
 
 check_fn_by_cell = {
@@ -88,6 +99,7 @@ check_fn_by_cell = {
 }
 
 def checkmate(board):
+    captured = {}
     success = False
     b = check_and_parse_board(board)
     if b:
@@ -97,11 +109,24 @@ def checkmate(board):
                 if cell == "K":
                     print_with_color(cell, color=ANSI.HIGHLIGHTED_RED, end=" ")
                     continue
-                if cell in check_fn_by_cell and is_king_in_range(b, (i, j), check_fn_by_cell[cell]):
-                    print_with_color(cell, color=ANSI.HIGHLIGHTED_CYAN, end=" ")
-                    success = True
+                if cell in check_fn_by_cell:
+                    delta = is_king_in_range(b, (i, j), check_fn_by_cell[cell])
+                    if delta:
+                        print_with_color(cell, color=ANSI.HIGHLIGHTED_CYAN, end=" ")
+                        if not captured.get(delta):
+                            captured[delta] = []
+                        captured[delta].append((i, j))
+                        success = True
                     continue
                 print_with_color(cell, end=" ", color=ANSI.WHITE if cell == "K" else ANSI.BLACK_LIGHT)
             print()
+    for least_delta in sorted(captured.keys()):
+        print(f"King is in check by {least_delta} from", end=": ")
+        for cell in captured[least_delta]:
+            i = cell[0]
+            j = cell[1]
+            print_with_color(f"{get_notation(i, j)}", color=ANSI.YELLOW, end=" ")
+            print(f"({b[i][j]})", end=" ")
+        print()
     print("Success" if success else "Fail")
     return success
